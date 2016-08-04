@@ -15,6 +15,9 @@ import scala.io.Source
 object DataGenerator {
   //implicit val stopTimesDecoder: RowDecoder[StopTimes] = RowDecoder.decoder(0, 1, 2, 3, 4)(StopTimes.apply)
   type StopTime = (Int, String, String, Int, Int)
+  type Stop = (Int, String, Double, Double, String)
+  type Trip = (Int, Int, Int, String)
+  type Route = (Int, String, String, Int, String)
 
   def parse(folder: String): List[Connection] = {
     val stopTimes = new File(folder + "stop_times.txt").asCsvReader[StopTime](',', true) collect {
