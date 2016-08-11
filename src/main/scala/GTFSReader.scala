@@ -3,10 +3,18 @@ class GTFSData(val stops: Map[Int, Stop], val connections: List[Connection]) {
 }
 
 object GTFSData {
+  private def makeConnectionsFromStops(timedStops: List[StopTime]): List[Connection] = timedStops match {
+    case _ :: Nil => List()
+    case Nil => List()
+    case from :: to :: rest =>
+      Connection(from.stopId, to.stopId, from.departureTime, to.arrivalTime) :: makeConnectionsFromStops(to :: rest)
+  }
+
   def fromDirPath(path: String): GTFSData = {
     val stopData = StopReader.read(path + "stops.txt")
     val calendarData = CalendarDateReader.read(path + "calendar_dates.txt")
     val stopTimeData = StopTimeReader.read(path + "stop_times.txt")
+    val tripData = TripReader.read(path + "trips.txt").toList.groupBy(t => t.serviceId)
 
     val stops = stopData.foldLeft(Map[Int, Stop]())((p: Map[Int, Stop], n: Stop) => p + (n.id -> n))
     val stopTimes = stopTimeData.toList.groupBy(s => s.tripId)
@@ -16,9 +24,13 @@ object GTFSData {
     println(todaysConnections.size)
 
     val connections = for (date <- todaysConnections) {
-      val serviceId = date.serviceId
+      val trips: List[Trip] = tripData.getOrElse(date.serviceId, List())
 
-
+      trips foreach {
+        trip => stopTimes.get(trip.tripId) match {
+          case Some()
+        }
+      }
     }
 
     new GTFSData(stops, List())
