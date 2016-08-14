@@ -1,20 +1,8 @@
-import scala.io.Source
-
 case class Connection(depStation: Int, arrStation: Int, depTime: Int, arrTime: Int)
 case class Query(depStation: Int, arrStation: Int, depTime: Int)
 
 object Csa {
   val infinity = Connection(0, 0, 0, Int.MaxValue)
-
-  def lineToConnection(line: String): Connection = line split ' ' map { _.toInt } match {
-    case Array(a1, a2, a3, a4) => Connection(a1, a2, a3, a4)
-    case _ => throw new IllegalArgumentException("Provided line is no connection")
-  }
-
-  def lineToQuery(line: String): Query = line split ' ' map { _.toInt } match {
-    case Array(a1, a2, a3) => Query(a1, a2, a3)
-    case _ => throw new IllegalArgumentException("Provided line is no query")
-  }
 
   def makeConnection(shortest: Map[Int, Connection], start: Int, end: Int): List[Connection] = {
     if (end == start)
@@ -43,18 +31,6 @@ object Csa {
         }
       }
     }
-    return makeConnection(shortest, query.depStation, query.arrStation)
-  }
-
-  def main(args: Array[String]): Unit = {
-    val lines = Source.fromInputStream(System.in).getLines().toArray
-    val connections = lines takeWhile { !_.isEmpty() } map lineToConnection
-    val query = lineToQuery(lines.last)
-
-    val Query(depStation, arrStation, _) = query
-
-    println(s"Query von $depStation nach $arrStation:")
-
-    find(connections.toList, query).reverse foreach println
+    return makeConnection(shortest, query.depStation, query.arrStation).reverse
   }
 }
