@@ -40,3 +40,7 @@ object CalendarDateReader extends AbstractReader[CalendarDate] {
 object TripReader extends  AbstractReader[Trip] {
   implicit val decoder: RowDecoder[Trip] = RowDecoder.decoder(0, 1, 2, 3)(Trip.apply)
 }
+
+object RouteReader extends AbstractReader[Route] {
+  implicit val decoder: RowDecoder[Route] = RowDecoder.decoder(0, 1, 2)(Route.apply)
+}
