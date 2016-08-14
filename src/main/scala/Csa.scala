@@ -1,10 +1,16 @@
-case class Connection(depStation: Int, arrStation: Int, depTime: Int, arrTime: Int)
+trait Connection {
+  val depStation: Int
+  val arrStation: Int
+  val depTime: Int
+  val arrTime: Int
+}
+case class BasicConnection(depStation: Int, arrStation: Int, depTime: Int, arrTime: Int) extends Connection
 case class Query(depStation: Int, arrStation: Int, depTime: Int)
 
 object Csa {
-  val infinity = Connection(0, 0, 0, Int.MaxValue)
+  val infinity = BasicConnection(0, 0, 0, Int.MaxValue)
 
-  def makeConnection(shortest: Map[Int, Connection], start: Int, end: Int): List[Connection] = {
+  def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): List[C] = {
     if (end == start)
       List()
     else
@@ -16,8 +22,8 @@ object Csa {
       }
   }
 
-  def find(connections: List[Connection], query: Query): List[Connection] = {
-    var shortest = Map[Int, Connection]()
+  def find[C <: Connection](connections: List[C], query: Query): List[C] = {
+    var shortest = Map[Int, C]()
     for (conn <- connections) {
       if (
         conn.depStation == query.depStation && query.depTime < conn.depTime ||
