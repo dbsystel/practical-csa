@@ -18,7 +18,7 @@ abstract class AbstractReader[T] {
 }
 
 object StopReader extends AbstractReader[Stop] {
-  implicit val decoder: RowDecoder[Stop] = RowDecoder.decoder(0, 1, 2, 3, 4)(Stop.apply)
+  implicit val decoder: RowDecoder[Stop] = RowDecoder.decoder(0, 1)(Stop.apply)
 }
 
 object StopTimeReader extends AbstractReader[StopTime] {
