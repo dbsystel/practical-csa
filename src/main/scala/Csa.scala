@@ -22,7 +22,7 @@ object Csa {
       }
   }
 
-  def find[C <: Connection](connections: List[C], query: Query): List[C] = {
+  def find[C <: Connection](connections: Array[C], query: Query): List[C] = {
     var shortest = Map[Int, C]()
     for (conn <- connections) {
       if (
@@ -37,6 +37,6 @@ object Csa {
         }
       }
     }
-    return makeConnection(shortest, query.depStation, query.arrStation).reverse
+    makeConnection(shortest, query.depStation, query.arrStation).reverse
   }
 }
