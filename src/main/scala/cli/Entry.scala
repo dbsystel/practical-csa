@@ -1,3 +1,7 @@
+package cli
+
+import gtfs._
+import algorithm._
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDateTime, LocalTime}
 
@@ -23,7 +27,7 @@ object Entry {
       s"${resolveRoute(connection.trip.routeId)}: $fromString => $toString"
     }
 
-    println(s"Connection from ${resolveStop(cons.head.depStation)} to ${resolveStop(cons.last.arrStation)}")
+    println(s"algorithm.Connection from ${resolveStop(cons.head.depStation)} to ${resolveStop(cons.last.arrStation)}")
 
     denseConnection(cons) map connectionToString foreach { println }
   }

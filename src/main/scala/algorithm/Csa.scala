@@ -1,12 +1,8 @@
-trait Connection {
-  val depStation: Int
-  val arrStation: Int
-  val depTime: Long
-  val arrTime: Long
-}
-case class BasicConnection(depStation: Int, arrStation: Int, depTime: Long, arrTime: Long) extends Connection
-case class Query(depStation: Int, arrStation: Int, depTime: Int)
+package algorithm
 
+/**
+  * Created by hendrikniemann on 17.08.2016.
+  */
 object Csa {
   def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): List[C] = {
     if (end == start) List() else shortest.get(end) match {

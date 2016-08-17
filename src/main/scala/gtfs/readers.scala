@@ -1,4 +1,7 @@
+package gtfs
+
 import java.io.{File, FileNotFoundException}
+
 import kantan.codecs.ResourceIterator
 import kantan.codecs.Result.Success
 import kantan.csv.RowDecoder

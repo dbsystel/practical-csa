@@ -1,5 +1,9 @@
+package gtfs
+
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+
+import algorithm._
 
 case class TripConnection(
                            depStation: Int,
