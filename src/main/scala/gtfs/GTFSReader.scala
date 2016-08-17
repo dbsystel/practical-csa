@@ -53,7 +53,7 @@ object GTFSData {
     val stopTimes = stopTimeData.toList groupBy { _.tripId }
 
     // Let's for now focus on one day
-    val todaysConnections = calendarData
+    val todaysConnections = calendarData // filter { _.date <= 20160000 }
 
     val connections: Array[TripConnection] = todaysConnections.toArray flatMap {
       (operationDate: CalendarDate) => {

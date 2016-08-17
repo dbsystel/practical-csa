@@ -1,5 +1,7 @@
 package algorithm
 
+import scala.annotation.tailrec
+
 /**
   * Created by hendrikniemann on 17.08.2016.
   */
@@ -13,11 +15,29 @@ object Csa {
     }
   }
 
+  private def findStart[C <: Connection](connections: Array[C], startAt: Long): Int = {
+    @tailrec
+    def binarySearch(lower: Int, upper: Int): Int = {
+      if (upper - lower < 2)
+        lower
+      else {
+        val between = (upper - lower) / 2 + lower
+        if (connections(between).depTime < startAt)
+          binarySearch(between, upper)
+        else
+          binarySearch(lower, between)
+      }
+    }
+    binarySearch(0, connections.length - 1)
+  }
+
   def find[C <: Connection](connections: Array[C], query: Query): List[C] = {
     val infinity = BasicConnection(0, 0, 0, Int.MaxValue)
 
     var shortest: Map[Int, C] = Map[Int, C]()
-    var i = 1
+    var i = findStart(connections, query.depTime)
+
+    println(s"found start at $i, startvalue ${query.depTime}, foundValue ${connections(i).depTime}")
     // since this calculates one to one queries we can break when the connection departs later then EAT at target stop
     while (i < connections.length && shortest.getOrElse(query.arrStation, infinity).arrTime > connections(i).depTime) {
       val conn = connections(i)
