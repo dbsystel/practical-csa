@@ -1,10 +1,10 @@
 trait Connection {
   val depStation: Int
   val arrStation: Int
-  val depTime: Int
-  val arrTime: Int
+  val depTime: Long
+  val arrTime: Long
 }
-case class BasicConnection(depStation: Int, arrStation: Int, depTime: Int, arrTime: Int) extends Connection
+case class BasicConnection(depStation: Int, arrStation: Int, depTime: Long, arrTime: Long) extends Connection
 case class Query(depStation: Int, arrStation: Int, depTime: Int)
 
 object Csa {

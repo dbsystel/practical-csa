@@ -23,7 +23,7 @@ object StopReader extends AbstractReader[Stop] {
 
 object StopTimeReader extends AbstractReader[StopTime] {
   private def timeStringToInt(str: String) = str.split(':') map { _.toInt } match {
-    case Array(h, m, s) => h * 3600 + m * 60 + s
+    case Array(h, m, s) => h * 60 + m
     case _ => throw new IllegalArgumentException("Provided time string must have format hh:mm:ss!")
   }
 

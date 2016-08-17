@@ -1,8 +1,11 @@
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
+
 case class TripConnection(
                            depStation: Int,
                            arrStation: Int,
-                           depTime: Int,
-                           arrTime: Int,
+                           depTime: Long,
+                           arrTime: Long,
                            trip: Trip
                          ) extends Connection
 
@@ -11,12 +14,22 @@ class GTFSData(val stops: Map[Int, Stop], val connections: Array[TripConnection]
 }
 
 object GTFSData {
-  private def makeConnectionsFromStops(trip: Trip)(timedStops: List[StopTime]): List[TripConnection] = timedStops match {
+  private val epoch = LocalDateTime.of(2000, 1, 1, 0, 0)
+
+  private def calculateTime(date: LocalDateTime, time: Long): Long = {
+    epoch.until(date, ChronoUnit.MINUTES) + time
+  }
+
+  private def makeConnectionsFromStops(trip: Trip, date: LocalDateTime)(timedStops: List[StopTime]): List[TripConnection] = timedStops match {
     case Nil => Nil
     case _ :: Nil => Nil
     case from :: to :: rest =>
-      TripConnection(from.stopId, to.stopId, from.departureTime, to.arrivalTime, trip) ::
-        makeConnectionsFromStops(trip)(to :: rest)
+      TripConnection(
+        from.stopId,
+        to.stopId,
+        calculateTime(date, from.departureTime),
+        calculateTime(date, to.arrivalTime), trip
+      ) :: makeConnectionsFromStops(trip, date)(to :: rest)
   }
 
   def fromDirPath(path: String): GTFSData = {
@@ -32,20 +45,21 @@ object GTFSData {
     val routes = routeData.foldLeft(Map[Int, Route]())((p: Map[Int, Route], n: Route) => p + (n.id -> n))
 
     // In Map[List] with foreign key
-    val trips = tripData.toList.groupBy(t => t.serviceId)
-    val stopTimes = stopTimeData.toList.groupBy(s => s.tripId)
+    val trips = tripData.toList groupBy { _.serviceId }
+    val stopTimes = stopTimeData.toList groupBy { _.tripId }
 
     // Let's for now focus on one day
-    val todaysConnections = calendarData filter { _.date == 20160815 }
+    val todaysConnections = calendarData
 
     val connections: Array[TripConnection] = todaysConnections.toArray flatMap {
       (operationDate: CalendarDate) => {
         // If a service operates on a date all trips of the service operate on this date
         // we then have to go through all of these trips and add their connections
         val associatedTrips: List[Trip] = trips.getOrElse(operationDate.serviceId, Nil)
+        val timestamp = LocalDateTime.of(operationDate.date / 10000, (operationDate.date % 10000) / 100, operationDate.date % 100, 0, 0)
 
         associatedTrips flatMap {
-          trip => stopTimes.get(trip.id) map makeConnectionsFromStops(trip) getOrElse Nil
+          trip => stopTimes.get(trip.id) map makeConnectionsFromStops(trip, timestamp) getOrElse Nil
         }
       }
     }

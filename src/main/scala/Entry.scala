@@ -1,8 +1,11 @@
+import java.time.temporal.ChronoUnit
+import java.time.{LocalDateTime, LocalTime}
+
 object Entry {
   def printConnection(cons: List[TripConnection], data: GTFSData) = {
     def resolveStop: Int => String = data.stops(_).name
     def resolveRoute: Int => String =  data.routes(_).longName
-    def resolveTime: Int => String = t => t / 3600 + ":" + (t % 3600) / 60
+    def resolveTime: Long => String = t => LocalTime.of((t / 60) % 24 toInt, t % 60 toInt).toString
 
     def denseConnection(l: List[TripConnection]): List[TripConnection] = l match {
       case Nil => Nil
@@ -28,10 +31,11 @@ object Entry {
   def main(args: Array[String]): Unit = {
     val data = GTFSData.fromDirPath("D:/Users/hendrikniemann/Documents/gtfsdata/fv/")
 
-    val from = data.findStopByName("Frankfurt(Main)Hbf").get
-    val to = data.findStopByName("Berlin Hbf").get
+    val from = data.findStopByName("Mannheim Hbf").get
+    val to = data.findStopByName("Marburg(Lahn)").get
+    val now = LocalDateTime.of(2000, 1, 1, 0, 0).until(LocalDateTime.now(), ChronoUnit.MINUTES).toInt
 
-    val res = Csa.find(data.connections, Query(from.id, to.id, 10 * 60 * 60 + 30 * 60))
+    val res = Csa.find(data.connections, Query(from.id, to.id, now))
 
     printConnection(res, data)
   }
