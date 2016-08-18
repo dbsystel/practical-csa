@@ -1,7 +1,8 @@
-# CSA Implementation
+# Practical Connection Scan Algorithm Implementation
 
-This is a implementation of a modified Connection Scan Algorithm.
+This is a high level implementation of the Connection Scan Algorithm.
 Modifications are made to fit special requirements for timetable information systems at [Deutsche Bahn](http://deutschebahn.com).
+Goal of this implementation is to find out about difficulties when applying the algorithm to real world problems and requirements and to provide a publicly available working example.
 
 ## About the algorithm
 
