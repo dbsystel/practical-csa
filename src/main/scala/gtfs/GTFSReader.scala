@@ -20,13 +20,11 @@ class GTFSData(val stops: Map[Int, Stop], val connections: Array[TripConnection]
 object GTFSData {
   private val epoch = LocalDateTime.of(2000, 1, 1, 0, 0)
 
-  private def calculateTime(date: LocalDateTime, time: Long): Long = {
+  private def sinceEpoch(date: LocalDateTime, time: Long): Long = {
     epoch.until(date, ChronoUnit.MINUTES) + time
   }
 
   private def makeConnectionsFromStops(trip: Trip, date: LocalDateTime)(timedStops: List[StopTime]): List[TripConnection] = timedStops match {
-    case Nil => Nil
-    case _ :: Nil => Nil
     case from :: to :: rest =>
       TripConnection(
         from.stopId,
@@ -34,6 +32,7 @@ object GTFSData {
         calculateTime(date, from.departureTime),
         calculateTime(date, to.arrivalTime), trip
       ) :: makeConnectionsFromStops(trip, date)(to :: rest)
+    case _ => Nil
   }
 
   def fromDirPath(path: String): GTFSData = {
@@ -43,7 +42,7 @@ object GTFSData {
     val routeData = RouteReader.read(path + "routes.txt")
     val tripData = TripReader.read(path + "trips.txt")
 
-    // We would like to have the data in some different data structures for easier use
+    // We would like to have the data in some different data structures for easier use (lookups)
     // Maps with id as Key
     val stops = stopData.foldLeft(Map[Int, Stop]())((p: Map[Int, Stop], n: Stop) => p + (n.id -> n))
     val routes = routeData.foldLeft(Map[Int, Route]())((p: Map[Int, Route], n: Route) => p + (n.id -> n))
@@ -56,11 +55,13 @@ object GTFSData {
     val todaysConnections = calendarData // filter { _.date <= 20160000 }
 
     val connections: Array[TripConnection] = todaysConnections.toArray flatMap {
-      (operationDate: CalendarDate) => {
+      (trafficDay: CalendarDate) => {
         // If a service operates on a date all trips of the service operate on this date
         // we then have to go through all of these trips and add their connections
-        val associatedTrips: List[Trip] = trips.getOrElse(operationDate.serviceId, Nil)
-        val timestamp = LocalDateTime.of(operationDate.date / 10000, (operationDate.date % 10000) / 100, operationDate.date % 100, 0, 0)
+        val associatedTrips: List[Trip] = trips.getOrElse(trafficDay.serviceId, Nil)
+
+        // java.time.LocalDateTime of traffic day
+        val timestamp = LocalDateTime.of(trafficDay.date / 10000, (trafficDay.date % 10000) / 100, trafficDay.date % 100, 0, 0)
 
         associatedTrips flatMap {
           trip => stopTimes.get(trip.id) map makeConnectionsFromStops(trip, timestamp) getOrElse Nil
