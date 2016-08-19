@@ -13,12 +13,18 @@ case class TripConnection(
                            trip: Trip
                          ) extends Connection
 
-class GTFSData(val stops: Map[Int, Stop], val connections: Array[TripConnection], val routes: Map[Int, Route]) {
+class GTFSData(
+                val stops: Map[Int, Stop],
+                val routes: Map[Int, Route],
+                val trips: Map[Int, List[Trip]],
+                val stopTimes: Map[Int, List[StopTime]],
+                val connections: Array[TripConnection]
+              ) {
   def findStopByName(name: String): Option[Stop] = stops find { _._2.name == name } map { _._2 }
 }
 
 object GTFSData {
-  private val epoch = LocalDateTime.of(2000, 1, 1, 0, 0)
+  val epoch = LocalDateTime.of(2000, 1, 1, 0, 0)
 
   private def sinceEpoch(date: LocalDateTime, time: Long): Long = {
     epoch.until(date, ChronoUnit.MINUTES) + time
@@ -29,8 +35,8 @@ object GTFSData {
       TripConnection(
         from.stopId,
         to.stopId,
-        calculateTime(date, from.departureTime),
-        calculateTime(date, to.arrivalTime), trip
+        sinceEpoch(date, from.departureTime),
+        sinceEpoch(date, to.arrivalTime), trip
       ) :: makeConnectionsFromStops(trip, date)(to :: rest)
     case _ => Nil
   }
@@ -69,6 +75,8 @@ object GTFSData {
       }
     }
 
-    new GTFSData(stops, connections.sortBy(c => c.depTime), routes)
+    new GTFSData(stops, routes, trips, stopTimes, connections.sortBy(c => c.depTime))
   }
+
+  def empty = new GTFSData(Map(), Map(), Map(), Map(), Array())
 }
