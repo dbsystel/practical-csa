@@ -2,6 +2,8 @@ package algorithm
 
 import scala.annotation.tailrec
 
+case class BasicConnection(depStation: Int, arrStation: Int, depTime: Long, arrTime: Long) extends Connection
+
 object Csa {
   def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): List[C] = {
     if (end == start) List() else shortest.get(end) match {

@@ -39,14 +39,20 @@ object Endpoint extends Analogweb {
       NiceConnection(departureStation, arrivalStation, departureTime, arrivalTime, name)
     }
 
-    val now = LocalDateTime.of(2000, 1, 1, 0, 0).until(LocalDateTime.now(), ChronoUnit.MINUTES).toInt
+    def now = GTFSData.epoch.until(LocalDateTime.now(), ChronoUnit.MINUTES).toInt
+
+    val time = r.queryOption("time") map {
+      LocalDateTime.parse(_)
+    } map {
+      GTFSData.epoch.until(_, ChronoUnit.MINUTES).toInt
+    } getOrElse now
 
     val from = data.stops.get(param("from").toInt)
     val to = data.stops.get(param("to").toInt)
 
     val res = List(param("from"), param("to")) map { s => data.stops.get(s.toInt) } match {
       case Some(start) :: Some(destination) :: Nil =>
-        Some(Csa.find(data.connections, Query(start.id, destination.id, now)))
+        Some(Csa.find(data.connections, Query(start.id, destination.id, time)))
       case _ => None
     }
 
