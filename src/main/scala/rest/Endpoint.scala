@@ -56,7 +56,7 @@ object Endpoint extends Analogweb {
       case _ => None
     }
 
-    res map {
+    res.get map {
       denseConnection(_) map makeNiceConnection
     } map asJson getOrElse BadRequest(asText("Could not find stops with those IDs."))
   }

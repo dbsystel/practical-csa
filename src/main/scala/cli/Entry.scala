@@ -39,7 +39,7 @@ object Entry {
     val to = data.findStopByName("Marburg(Lahn)").get
     val now = LocalDateTime.of(2000, 1, 1, 0, 0).until(LocalDateTime.now(), ChronoUnit.MINUTES).toInt
 
-    val res = Csa.find(data.connections, Query(from.id, to.id, now))
+    val res = Csa.find(data.connections, Query(from.id, to.id, now)).get
 
     printConnection(res, data)
   }

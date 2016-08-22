@@ -5,12 +5,9 @@ import scala.annotation.tailrec
 case class BasicConnection(depStation: Int, arrStation: Int, depTime: Long, arrTime: Long) extends Connection
 
 object Csa {
-  def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): List[C] = {
-    if (end == start) List() else shortest.get(end) match {
-      case Some(connection) =>
-        connection :: makeConnection(shortest, start, connection.depStation)
-      case None =>
-        throw new Exception("Connection not found in map!")
+  def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): Option[List[C]] = {
+    if (end == start) Some(List()) else shortest.get(end) map { connection =>
+        connection :: makeConnection(shortest, start, connection.depStation).get
     }
   }
 
@@ -30,7 +27,7 @@ object Csa {
     binarySearch(0, connections.length - 1)
   }
 
-  def find[C <: Connection](connections: Array[C], query: Query): List[C] = {
+  def find[C <: Connection](connections: Array[C], query: Query): Option[List[C]] = {
     val infinity = BasicConnection(0, 0, 0, Int.MaxValue)
 
     var shortest: Map[Int, C] = Map[Int, C]()
@@ -53,6 +50,6 @@ object Csa {
       }
       i += 1
     }
-    makeConnection(shortest, query.depStation, query.arrStation).reverse
+    makeConnection(shortest, query.depStation, query.arrStation) map { _.reverse }
   }
 }
