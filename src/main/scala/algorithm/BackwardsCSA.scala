@@ -1,52 +1,95 @@
 package algorithm
 
 import scala.annotation.tailrec
-/*
-class BackwardsCSA {
-  private def findStart[C <: Connection](connections: Array[C], startAt: Long): Int = {
-    @tailrec
-    def binarySearch(lower: Int, upper: Int): Int = {
-      if (upper - lower < 2)
-        lower
-      else {
-        val between = (upper - lower) / 2 + lower
-        if (connections(between).depTime < startAt)
-          binarySearch(between, upper)
-        else
-          binarySearch(lower, between)
-      }
+
+object BackwardsCSA {
+  private def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): Option[List[C]] = {
+    if (end == start) Some(List()) else shortest.get(end) map { connection =>
+      connection :: makeConnection(shortest, start, connection.arrStation).get
     }
-    binarySearch(0, connections.length - 1)
   }
 
-  def find[C <: Connection](connections: Array[C], query: Query): Option[List[C]] = {
+  private def findUpperBound[T](criterion: T => Boolean, values: Array[T]): Int = {
+    @tailrec
+    def binarySearch(lower: Int, upper: Int): Int = {
+      if (lower >= upper)
+        lower
+      else {
+        val between = (upper - lower + 1) / 2 + lower
+        if (criterion(values(between)))
+          binarySearch(between, upper)
+        else
+          binarySearch(lower, between - 1)
+      }
+    }
+    binarySearch(0, values.length - 1)
+  }
+
+  def find[C <: Connection](byDeparture: Array[C], byArrival: Array[C], query: Query): Option[List[C]] = {
     val infinity = BasicConnection(0, 0, 0, Int.MaxValue)
 
     var shortest: Map[Int, C] = Map[Int, C]()
 
     // we look up the earliest relevant connection with binary search
-    var i = findStart(connections, query.depTime)
+    val start = findUpperBound((c: C) => c.depTime < query.depTime, byDeparture)
+    var i = start
     // since this calculates one to one queries we can break when the connection departs later then EAT at target stop
-    while (i < connections.length && shortest.getOrElse(query.arrStation, infinity).arrTime > connections(i).depTime) {
-      val conn = connections(i)
+    while (i < byDeparture.length && shortest.getOrElse(query.arrStation, infinity).arrTime > byDeparture(i).depTime) {
+      val conn = byDeparture(i)
       if (
-        conn.depStation == query.depStation && query.depTime < conn.depTime ||
+        conn.depStation == query.depStation && query.depTime <= conn.depTime ||
           shortest.getOrElse(conn.depStation, infinity).arrTime < conn.depTime
       ) {
         shortest.get(conn.arrStation) match {
           case Some(current) =>
-            if (current.arrTime > conn.arrTime) shortest = shortest + (conn.arrStation -> conn)
+            if (current.arrTime > conn.arrTime) shortest += (conn.arrStation -> conn)
           case None =>
-            shortest = shortest + (conn.arrStation -> conn)
+            shortest += (conn.arrStation -> conn)
         }
       }
       i += 1
     }
 
+    // If we could not find an EAT for the target station we can exit here
+    if (!shortest.isDefinedAt(query.arrStation)) return None
+
+    val eat = shortest(query.arrStation).arrTime
+
+    println(s"calculated eat at $eat")
+
+    // now we scan backwards through the array to find the latest departing connection arriving at eat
+    i = byArrival.length - 1 //findUpperBound((c: C) => c.arrTime >= eat, byArrival)
+
+    println(s"found latest relevant connection at ${byArrival(i)}")
     shortest = Map()
 
-    //i = findStart(connections) + 1
-    //makeConnection(shortest, query.depStation, query.arrStation).reverse
+    println(byArrival count { _.depStation == query.depStation })
+
+    while (i >= 0) {//byArrival(i).arrTime <= query.depTime) {
+      val conn = byArrival(i)
+      if (
+        conn.arrStation == query.arrStation && eat >= conn.arrTime ||
+          shortest.getOrElse(conn.arrStation, infinity).depTime > conn.arrTime
+      ) {
+        shortest.get(conn.depStation) match {
+          case Some(current) =>
+            if (current.depTime < conn.depTime) {
+              shortest += (conn.depStation -> conn)
+              if (conn.depStation == query.depStation) println("...improved value")
+            } else {
+              if (conn.depStation == query.depStation)  println("...couldn't improve value")
+            }
+          case None =>
+            shortest += (conn.depStation -> conn)
+            if (conn.depStation == query.depStation) println("...inserted value")
+        }
+      }
+      i -= 1
+    }
+
+    println(s"Found connection backwards...${shortest(query.depStation)}")
+
+    makeConnection(shortest, query.arrStation, query.depStation)
   }
 }
-*/
+
