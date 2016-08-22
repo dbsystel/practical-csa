@@ -38,14 +38,14 @@ object Csa {
     while (i < connections.length && shortest.getOrElse(query.arrStation, infinity).arrTime > connections(i).depTime) {
       val conn = connections(i)
       if (
-        conn.depStation == query.depStation && query.depTime < conn.depTime ||
+        conn.depStation == query.depStation && query.depTime <= conn.depTime ||
           shortest.getOrElse(conn.depStation, infinity).arrTime < conn.depTime
       ) {
         shortest.get(conn.arrStation) match {
           case Some(current) =>
-            if (current.arrTime > conn.arrTime) shortest = shortest + (conn.arrStation -> conn)
+            if (current.arrTime > conn.arrTime) shortest += (conn.arrStation -> conn)
           case None =>
-            shortest = shortest + (conn.arrStation -> conn)
+            shortest += (conn.arrStation -> conn)
         }
       }
       i += 1
