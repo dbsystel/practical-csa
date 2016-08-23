@@ -11,20 +11,20 @@ object Csa {
     }
   }
 
-  private def findStart[C <: Connection](connections: Array[C], startAt: Long): Int = {
+  private def findLowerBound[T](criterion: T => Boolean, values: Array[T]): Int = {
     @tailrec
     def binarySearch(lower: Int, upper: Int): Int = {
-      if (upper - lower < 2)
+      if (lower >= upper)
         lower
       else {
         val between = (upper - lower) / 2 + lower
-        if (connections(between).depTime < startAt)
-          binarySearch(between, upper)
-        else
+        if (criterion(values(between)))
           binarySearch(lower, between)
+        else
+          binarySearch(between + 1, upper)
       }
     }
-    binarySearch(0, connections.length - 1)
+    binarySearch(0, values.length - 1)
   }
 
   def find[C <: Connection](connections: Array[C], query: Query): Option[List[C]] = {
@@ -33,7 +33,7 @@ object Csa {
     var shortest: Map[Int, C] = Map[Int, C]()
 
     // we look up the earliest relevant connection with binary search
-    var i = findStart(connections, query.depTime)
+    var i = findLowerBound((c: C) => c.depTime >= query.depTime, connections)
     // since this calculates one to one queries we can break when the connection departs later then EAT at target stop
     while (i < connections.length && shortest.getOrElse(query.arrStation, infinity).arrTime > connections(i).depTime) {
       val conn = connections(i)
