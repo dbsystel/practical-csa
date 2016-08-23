@@ -9,17 +9,17 @@ object BackwardsCSA {
     }
   }
 
-  private def findUpperBound[T](criterion: T => Boolean, values: Array[T]): Int = {
+  private def findLowerBound[T](criterion: T => Boolean, values: Array[T]): Int = {
     @tailrec
     def binarySearch(lower: Int, upper: Int): Int = {
       if (lower >= upper)
         lower
       else {
-        val between = (upper - lower + 1) / 2 + lower
+        val between = (upper - lower) / 2 + lower
         if (criterion(values(between)))
-          binarySearch(between, upper)
+          binarySearch(lower, between)
         else
-          binarySearch(lower, between - 1)
+          binarySearch(between + 1, upper)
       }
     }
     binarySearch(0, values.length - 1)
@@ -31,8 +31,7 @@ object BackwardsCSA {
     var shortest: Map[Int, C] = Map[Int, C]()
 
     // we look up the earliest relevant connection with binary search
-    val start = findUpperBound((c: C) => c.depTime < query.depTime, byDeparture)
-    var i = start
+    var i = findLowerBound((c: C) => c.depTime >= query.depTime, byDeparture)
     // since this calculates one to one queries we can break when the connection departs later then EAT at target stop
     while (i < byDeparture.length && shortest.getOrElse(query.arrStation, infinity).arrTime > byDeparture(i).depTime) {
       val conn = byDeparture(i)
@@ -55,17 +54,12 @@ object BackwardsCSA {
 
     val eat = shortest(query.arrStation).arrTime
 
-    println(s"calculated eat at $eat")
-
     // now we scan backwards through the array to find the latest departing connection arriving at eat
-    i = byArrival.length - 1 //findUpperBound((c: C) => c.arrTime >= eat, byArrival)
+    i = findLowerBound((c: C) => c.arrTime > eat, byArrival) - 1
 
-    println(s"found latest relevant connection at ${byArrival(i)}")
     shortest = Map()
 
-    println(byArrival count { _.depStation == query.depStation })
-
-    while (i >= 0) {//byArrival(i).arrTime <= query.depTime) {
+    while (byArrival(i).arrTime >= query.depTime) {
       val conn = byArrival(i)
       if (
         conn.arrStation == query.arrStation && eat >= conn.arrTime ||
@@ -73,21 +67,13 @@ object BackwardsCSA {
       ) {
         shortest.get(conn.depStation) match {
           case Some(current) =>
-            if (current.depTime < conn.depTime) {
-              shortest += (conn.depStation -> conn)
-              if (conn.depStation == query.depStation) println("...improved value")
-            } else {
-              if (conn.depStation == query.depStation)  println("...couldn't improve value")
-            }
+            if (current.depTime < conn.depTime) shortest += (conn.depStation -> conn)
           case None =>
             shortest += (conn.depStation -> conn)
-            if (conn.depStation == query.depStation) println("...inserted value")
         }
       }
       i -= 1
     }
-
-    println(s"Found connection backwards...${shortest(query.depStation)}")
 
     makeConnection(shortest, query.arrStation, query.depStation)
   }

@@ -74,7 +74,7 @@ object Endpoint extends Analogweb {
 
     val res = List(param("from"), param("to")) map { s => data.stops.get(s.toInt) } match {
       case Some(start) :: Some(destination) :: Nil =>
-        BackwardsCSA.find(data.connections, data.connections sortWith { _.arrTime > _.arrTime }, Query(start.id, destination.id, time))
+        BackwardsCSA.find(data.connections, data.connections sortWith { _.arrTime < _.arrTime }, Query(start.id, destination.id, time))
       case _ => None
     }
 
