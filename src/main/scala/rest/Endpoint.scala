@@ -11,6 +11,13 @@ import org.analogweb.scala.Analogweb
 object Endpoint extends Analogweb {
   var data = GTFSData.empty
 
+  /**
+    * Concats following connections that belong to the same trip by omitting the stops in between:
+    * A -> B :: B -> C => A -> C
+    * This creates a pretty connection for the user
+    * @param l A connection that should be taken by the user
+    * @return List of real (not elementary) connections
+    */
   private def denseConnection(l: List[TripConnection]): List[TripConnection] = l match {
     case Nil => Nil
     case x :: xs => denseConnection(xs) match {
@@ -20,6 +27,11 @@ object Endpoint extends Analogweb {
     }
   }
 
+  /**
+    * Transforms trip connections to a JSON printable connection that can be delived by the API
+    * @param tripConnection a TripConnection
+    * @return a NiceConnection derived from the input parameter
+    */
   private def makeNiceConnection(tripConnection: TripConnection): NiceConnection = {
     val departureStation = data.stops(tripConnection.depStation)
     val arrivalStation = data.stops(tripConnection.arrStation)
@@ -30,6 +42,10 @@ object Endpoint extends Analogweb {
     NiceConnection(departureStation, arrivalStation, departureTime, arrivalTime, name)
   }
 
+  /**
+    * Calculates the minutes since epoch
+    * @return Time since epoch in minutes
+    */
   private def now = GTFSData.epoch.until(LocalDateTime.now(), ChronoUnit.MINUTES).toInt
 
   def main(args: Array[String]): Unit = {
@@ -41,15 +57,17 @@ object Endpoint extends Analogweb {
     Servers.create(8080).run()
   }
 
-  get("/query/{from}/{to}") { implicit r =>
-    val time = r.queryOption("time") map {
-      LocalDateTime.parse(_)
-    } map {
-      GTFSData.epoch.until(_, ChronoUnit.MINUTES).toInt
-    } getOrElse now
+  /**
+    * Gets the time from optional query parameter or returns current time if parameter is None
+    * @param par optional Query parameter
+    * @return Time in minutes since epoch from now or given time string
+    */
+  def getTime(par: Option[String]): Int = {
+    par map { s => GTFSData.epoch.until(LocalDateTime.parse(s), ChronoUnit.MINUTES).toInt } getOrElse now
+  }
 
-    val from = data.stops.get(param("from").toInt)
-    val to = data.stops.get(param("to").toInt)
+  get("/query/{from}/{to}") { implicit r =>
+    val time = getTime(r.queryOption("time"))
 
     val res = List(param("from"), param("to")) map { s => data.stops.get(s.toInt) } match {
       case Some(start) :: Some(destination) :: Nil =>
@@ -63,14 +81,7 @@ object Endpoint extends Analogweb {
   }
 
   get("/backwards/{from}/{to}") { implicit r =>
-    val time = r.queryOption("time") map {
-      LocalDateTime.parse(_)
-    } map {
-      GTFSData.epoch.until(_, ChronoUnit.MINUTES).toInt
-    } getOrElse now
-
-    val from = data.stops.get(param("from").toInt)
-    val to = data.stops.get(param("to").toInt)
+    val time = getTime(r.queryOption("time"))
 
     val res = List(param("from"), param("to")) map { s => data.stops.get(s.toInt) } match {
       case Some(start) :: Some(destination) :: Nil =>
