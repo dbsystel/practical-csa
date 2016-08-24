@@ -5,7 +5,7 @@ import scala.annotation.tailrec
 case class BasicConnection(depStation: Int, arrStation: Int, depTime: Long, arrTime: Long) extends Connection
 
 object Csa {
-  def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): Option[List[C]] = {
+  private def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): Option[List[C]] = {
     if (end == start) Some(List()) else shortest.get(end) map { connection =>
         connection :: makeConnection(shortest, start, connection.depStation).get
     }
@@ -18,10 +18,7 @@ object Csa {
         lower
       else {
         val between = (upper - lower) / 2 + lower
-        if (criterion(values(between)))
-          binarySearch(lower, between)
-        else
-          binarySearch(between + 1, upper)
+        if (criterion(values(between))) binarySearch(lower, between) else binarySearch(between + 1, upper)
       }
     }
     binarySearch(0, values.length - 1)
