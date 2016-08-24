@@ -47,3 +47,14 @@ object TripReader extends  AbstractReader[Trip] {
 object RouteReader extends AbstractReader[Route] {
   implicit val decoder: RowDecoder[Route] = RowDecoder.decoder(0, 1, 2)(Route.apply)
 }
+
+object TransferReader extends AbstractReader[Transfer] {
+  implicit val decoder: RowDecoder[Transfer] = RowDecoder.decoder(0, 1, 2, 3, 4, 5)(
+    (fromStop: Int, toStop: Int, transferType: Int, minTime: Int, fromTrip: String, toTrip: String) => {
+      if (!fromTrip.isEmpty && !toTrip.isEmpty) TripTransfer(fromTrip.toInt, toTrip.toInt, minTime)
+      else if (fromTrip.isEmpty && toTrip.isEmpty && fromStop == toStop) MinimumTransferTime(fromStop, minTime)
+      else if (fromTrip.isEmpty && toTrip.isEmpty) Footpath(fromStop, toStop, minTime)
+      else UnknownTransfer
+    }
+  )
+}
