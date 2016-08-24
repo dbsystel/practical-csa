@@ -3,7 +3,7 @@ package rest
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
-import algorithm.{BackwardsCSA, Csa, Query}
+import algorithm.{AdjustedCsa, BackwardsCSA, Csa, Query}
 import gtfs._
 import org.analogweb.core.Servers
 import org.analogweb.scala.Analogweb
@@ -96,6 +96,20 @@ object Endpoint extends Analogweb {
 
   get("/stop/{id}") { implicit r =>
     data.stops.get(param("id").toInt) map asJson getOrElse BadRequest(asText("Could not find a stop with that ID."))
+  }
+
+  get("/adjusted/{from}/{to}") { implicit r =>
+    val time = getTime(r.queryOption("time"))
+
+    val res = List(param("from"), param("to")) map { s => data.stops.get(s.toInt) } match {
+      case Some(start) :: Some(destination) :: Nil =>
+        new AdjustedCsa(data.connections, data.transferTimes).find(Query(start.id, destination.id, time))
+      case _ => None
+    }
+
+    res map {
+      denseConnection(_) map makeNiceConnection
+    } map asJson getOrElse BadRequest(asText("Could not find a connecting journey!"))
   }
 }
 
