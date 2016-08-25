@@ -1,0 +1,39 @@
+{
+  "routes": [
+    { "id": 1, "stops": [1, 2, 3, 4] },
+    { "id": 2, "stops": [1, 3, 5, 6] },
+    { "id": 3, "stops": [1, 6, 7, 4, 1] }
+  ],
+  "stops": [
+    { "id": 1, "changeTime": 1 },
+    { "id": 2, "changeTime": 1 },
+    { "id": 3, "changeTime": 1 },
+    { "id": 4, "changeTime": 1 },
+    { "id": 5, "changeTime": 1 },
+    { "id": 6, "changeTime": 1 },
+    { "id": 7, "changeTime": 1 }
+  ],
+  "distances": [
+    { "from": 1, "to": 2, "minutes": 4, "route": 1 },
+    { "from": 2, "to": 3, "minutes": 6, "route": 1 },
+    { "from": 3, "to": 4, "minutes": 7, "route": 1 },
+    { "from": 1, "to": 3, "minutes": 4, "route": 2 },
+    { "from": 3, "to": 5, "minutes": 4, "route": 2 },
+    { "from": 5, "to": 6, "minutes": 4, "route": 2 },
+    { "from": 1, "to": 6, "minutes": 9, "route": 3 },
+    { "from": 6, "to": 7, "minutes": 3, "route": 3 },
+    { "from": 7, "to": 4, "minutes": 12, "route": 3 },
+    { "from": 4, "to": 1, "minutes": 16, "route": 3 }
+  ],
+  "footpaths": [
+    { "from": 5, "to": 7, "minutes": 5 }
+  ],
+  "intervals": [
+    { "route": 1, "interval": 30, "departure": 1, "reverse": false },
+    { "route": 1, "interval": 30, "departure": 1, "reverse": true },
+    { "route": 2, "interval": 30, "departure": 8, "reverse": false },
+    { "route": 2, "interval": 30, "departure": 8, "reverse": true },
+    { "route": 3, "interval": 60, "departure": 5, "reverse": false }
+  ],
+  "maxTime": 1440
+}

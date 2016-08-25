@@ -1,0 +1,15 @@
+{
+  "name": "debugdata",
+  "version": "1.0.0",
+  "description": "Script to generate debug gtfs data",
+  "main": "script.js",
+  "dependencies": {
+    "ramda": "^0.22.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hendrikniemann",
+  "license": "MIT"
+}
