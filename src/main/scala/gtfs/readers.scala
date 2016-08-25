@@ -51,9 +51,9 @@ object RouteReader extends AbstractReader[Route] {
 object TransferReader extends AbstractReader[Transfer] {
   implicit val decoder: RowDecoder[Transfer] = RowDecoder.decoder(0, 1, 2, 3, 4, 5)(
     (fromStop: Int, toStop: Int, transferType: Int, minTime: Int, fromTrip: String, toTrip: String) => {
-      if (!fromTrip.isEmpty && !toTrip.isEmpty) TripTransfer(fromTrip.toInt, toTrip.toInt, minTime)
-      else if (fromTrip.isEmpty && toTrip.isEmpty && fromStop == toStop) MinimumTransferTime(fromStop, minTime)
-      else if (fromTrip.isEmpty && toTrip.isEmpty) Footpath(fromStop, toStop, minTime)
+      if (!fromTrip.isEmpty && !toTrip.isEmpty) TripTransfer(fromTrip.toInt, toTrip.toInt, minTime / 60)
+      else if (fromTrip.isEmpty && toTrip.isEmpty && fromStop == toStop) MinimumTransferTime(fromStop, minTime / 60)
+      else if (fromTrip.isEmpty && toTrip.isEmpty) Footpath(fromStop, toStop, minTime / 60)
       else UnknownTransfer
     }
   )

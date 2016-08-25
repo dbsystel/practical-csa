@@ -37,8 +37,8 @@ object Endpoint extends Analogweb {
     val arrivalStation = data.stops(tripConnection.arrStation)
     val departureTime = GTFSData.epoch.plusMinutes(tripConnection.depTime).toString
     val arrivalTime = GTFSData.epoch.plusMinutes(tripConnection.arrTime).toString
-    val name = tripConnection.trip.tripHeadsign + " on " + data.routes(tripConnection.trip.routeId).longName
-
+    val name = tripConnection.trip.tripHeadsign + " on " +
+      (data.routes.get(tripConnection.trip.routeId) map { _.longName } getOrElse "the woods")
     NiceConnection(departureStation, arrivalStation, departureTime, arrivalTime, name)
   }
 
@@ -103,7 +103,7 @@ object Endpoint extends Analogweb {
 
     val res = List(param("from"), param("to")) map { s => data.stops.get(s.toInt) } match {
       case Some(start) :: Some(destination) :: Nil =>
-        new AdjustedCsa(data.connections, data.transferTimes).find(Query(start.id, destination.id, time))
+        new AdjustedCsa(data.connections, data.transferTimes, data.footpaths).find(Query(start.id, destination.id, time))
       case _ => None
     }
 

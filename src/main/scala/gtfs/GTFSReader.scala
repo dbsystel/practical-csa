@@ -19,7 +19,8 @@ class GTFSData(
                 val trips: Map[Int, List[Trip]],
                 val stopTimes: Map[Int, List[StopTime]],
                 val connections: Array[TripConnection],
-                val transferTimes: Map[Int, Int]
+                val transferTimes: Map[Int, Int],
+                val footpaths: Map[Int, Iterable[Footpath]]
               ) {
   def findStopByName(name: String): Option[Stop] = stops find { _._2.name == name } map { _._2 }
 }
@@ -61,8 +62,11 @@ object GTFSData {
         case MinimumTransferTime(stopId, minutes) => transferTimes += (stopId -> minutes)
         case f: Footpath => allFootpaths += f
       }
+      println(s"${allFootpaths.size} foot paths!")
       allFootpaths groupBy { _.fromStopId }
-    }
+    } withDefaultValue Nil
+
+    println(s"${transferTimes.size} transfer times!");
 
     // In Map[List] with foreign key
     val trips = tripData.toList groupBy { _.serviceId }
@@ -86,8 +90,8 @@ object GTFSData {
       }
     }
 
-    new GTFSData(stops, routes, trips, stopTimes, connections.sortBy(c => c.depTime), transferTimes)
+    new GTFSData(stops, routes, trips, stopTimes, connections.sortBy(c => c.depTime), transferTimes, footpaths)
   }
 
-  def empty = new GTFSData(Map(), Map(), Map(), Map(), Array(), Map())
+  def empty = new GTFSData(Map(), Map(), Map(), Map(), Array(), Map(), Map())
 }
