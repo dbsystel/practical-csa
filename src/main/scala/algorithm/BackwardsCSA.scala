@@ -59,7 +59,7 @@ object BackwardsCSA {
 
     shortest = Map()
 
-    while (byArrival(i).arrTime >= query.depTime) {
+    while (i > 0 && byArrival(i).arrTime >= query.depTime) {
       val conn = byArrival(i)
       if (
         conn.arrStation == query.arrStation && eat >= conn.arrTime ||
