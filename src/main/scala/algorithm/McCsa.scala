@@ -2,13 +2,15 @@ package algorithm
 
 import gtfs.TripConnection
 
+import scala.annotation.tailrec
+
 class Domination[T](criteria: ((T, T) => Boolean)*) {
   private def check(x: T, y: T)(criterion: (T, T) => Boolean): Int = {
     if (criterion(x, y)) 1 else if (criterion(y, x)) -1 else 0
   }
 
   def dominates(x: T, y: T): Boolean = {
-    (criteria count { check(x, y)(_) == 1 }) > 0 && (criteria forall { check(x, y)(_) >= 0 })
+    (criteria exists { check(x, y)(_) == 1 }) && (criteria forall { check(x, y)(_) >= 0 })
   }
 }
 
@@ -17,12 +19,25 @@ object Domination {
 }
 
 class McCsa(connections: Array[TripConnection]) {
+  private def findLowerBound[T](criterion: T => Boolean, values: Array[T]): Int = {
+    @tailrec
+    def binarySearch(lower: Int, upper: Int): Int = {
+      if (lower >= upper)
+        lower
+      else {
+        val between = (upper - lower) / 2 + lower
+        if (criterion(values(between))) binarySearch(lower, between) else binarySearch(between + 1, upper)
+      }
+    }
+    binarySearch(0, values.length - 1)
+  }
+
   def find(query: Query): ParetoSet[List[TripConnection]] = {
     val dom = Domination(
       (a: List[TripConnection], b: List[TripConnection]) => a.last.depTime > b.last.depTime,
       (a: List[TripConnection], b: List[TripConnection]) => a.head.arrTime < b.head.arrTime
     )
-    
+
     def domination(a: List[TripConnection], b: List[TripConnection]): Boolean = dom.dominates(a, b)
 
     def connects(a: TripConnection, b: TripConnection) = {
@@ -40,9 +55,8 @@ class McCsa(connections: Array[TripConnection]) {
       }
     }
 
-    var i = 0
+    var i = findLowerBound((c: TripConnection) => c.depTime >= query.depTime, connections)
     while (i < connections.length) {
-
       val conn = connections(i)
       if (conn.depStation == query.depStation && query.depTime <= conn.depTime)
         insert(List(conn))
