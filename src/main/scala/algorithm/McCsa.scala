@@ -33,9 +33,12 @@ class McCsa(connections: Array[TripConnection]) {
   }
 
   def find(query: Query): ParetoSet[List[TripConnection]] = {
+    def changes(l: List[TripConnection]) = l.foldLeft(Set[Int]())({ _ + _.trip.id }).size - 1
+
     val dom = Domination(
       (a: List[TripConnection], b: List[TripConnection]) => a.last.depTime > b.last.depTime,
-      (a: List[TripConnection], b: List[TripConnection]) => a.head.arrTime < b.head.arrTime
+      (a: List[TripConnection], b: List[TripConnection]) => a.head.arrTime < b.head.arrTime,
+      (a: List[TripConnection], b: List[TripConnection]) => changes(a) < changes(b)
     )
 
     def domination(a: List[TripConnection], b: List[TripConnection]): Boolean = dom.dominates(a, b)
