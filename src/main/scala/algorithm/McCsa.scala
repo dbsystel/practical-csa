@@ -1,6 +1,6 @@
 package algorithm
 
-import gtfs.TripConnection
+import gtfs.{Footpath, TripConnection}
 
 import scala.annotation.tailrec
 
@@ -18,7 +18,7 @@ object Domination {
   def apply[T](criteria: ((T, T) => Boolean)*): Domination[T] = new Domination(criteria: _*)
 }
 
-class McCsa(connections: Array[TripConnection]) {
+class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], footpaths: Map[Int, Iterable[Footpath]]) {
   private def findLowerBound[T](criterion: T => Boolean, values: Array[T]): Int = {
     @tailrec
     def binarySearch(lower: Int, upper: Int): Int = {
@@ -44,10 +44,11 @@ class McCsa(connections: Array[TripConnection]) {
     def domination(a: List[TripConnection], b: List[TripConnection]): Boolean = dom.dominates(a, b)
 
     def connects(a: TripConnection, b: TripConnection) = {
-      a.arrTime <= b.depTime
+      a.trip == b.trip || a.arrTime <= b.depTime - transferTimes(b.depStation)
     }
 
-    var shortest: Map[Int, ParetoSet[List[TripConnection]]] = Map() withDefaultValue new ParetoSet[List[TripConnection]](domination)
+    val emptySet = new ParetoSet[List[TripConnection]](domination)
+    var shortest: Map[Int, ParetoSet[List[TripConnection]]] = Map() withDefaultValue emptySet
 
     def insert(c: List[TripConnection]) = shortest += c.head.arrStation -> (shortest(c.head.arrStation) + c)
 
