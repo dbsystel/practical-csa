@@ -75,13 +75,15 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
     }
 
     var i = findLowerBound((c: TripConnection) => c.depTime >= query.depTime, connections)
-    while (i < connections.length) {
+    var breakTime = Long.MaxValue
+    while (i < connections.length && connections(i).depTime < breakTime) {
       val conn = connections(i)
       if (conn.depStation == query.depStation && query.depTime <= conn.depTime)
         insertWithFootpath(List(conn))
       else
         insertIterable(shortest(conn.depStation) filter { l => connects(l.head, conn) } map { conn :: _ })
       i += 1
+      breakTime = shortest(query.arrStation).map(_.head.arrTime + 300).foldLeft(Long.MaxValue)(_ min _)
     }
 
     shortest(query.arrStation)
