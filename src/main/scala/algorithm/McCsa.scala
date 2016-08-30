@@ -1,6 +1,6 @@
 package algorithm
 
-import gtfs.{Footpath, TripConnection}
+import gtfs.{Footpath, Trip, TripConnection}
 
 import scala.annotation.tailrec
 
@@ -41,16 +41,31 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
       (a: List[TripConnection], b: List[TripConnection]) => changes(a) < changes(b)
     )
 
-    def domination(a: List[TripConnection], b: List[TripConnection]): Boolean = dom.dominates(a, b)
-
     def connects(a: TripConnection, b: TripConnection) = {
       a.trip == b.trip || a.arrTime <= b.depTime - transferTimes(b.depStation)
     }
 
-    val emptySet = new ParetoSet[List[TripConnection]](domination)
+    val emptySet = new ParetoSet[List[TripConnection]](dom.dominates)
     var shortest: Map[Int, ParetoSet[List[TripConnection]]] = Map() withDefaultValue emptySet
 
-    def insert(c: List[TripConnection]) = shortest += c.head.arrStation -> (shortest(c.head.arrStation) + c)
+    def insert(c: List[TripConnection]) = {
+      shortest += c.head.arrStation -> (shortest(c.head.arrStation) + c)
+    }
+
+    def insertWithFootpath(c: List[TripConnection]) = {
+      val newSet = shortest(c.head.arrStation) + c
+      if (shortest(c.head.arrStation) != newSet) {
+        for (c <- newSet) {
+          footpaths(c.head.arrStation) map { case Footpath(fId, tId, minutes) =>
+            TripConnection(
+              fId, tId, c.head.arrTime, c.head.arrTime + minutes, Trip(0, 0, 0, s"Footpath $minutes minutes")
+            ) :: c
+          } foreach insert
+        }
+
+        shortest += c.head.arrStation -> newSet
+      }
+    }
 
     def insertIterable(l: Iterable[List[TripConnection]]) = {
       if (l.nonEmpty) {
@@ -63,7 +78,7 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
     while (i < connections.length) {
       val conn = connections(i)
       if (conn.depStation == query.depStation && query.depTime <= conn.depTime)
-        insert(List(conn))
+        insertWithFootpath(List(conn))
       else
         insertIterable(shortest(conn.depStation) filter { l => connects(l.head, conn) } map { conn :: _ })
       i += 1
