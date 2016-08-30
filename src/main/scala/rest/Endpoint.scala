@@ -18,29 +18,36 @@ object Endpoint extends Analogweb {
     * @param l A connection that should be taken by the user
     * @return List of real (not elementary) connections
     */
-  private def denseConnection(l: List[TripConnection]): List[TripConnection] = l match {
+  private def denseConnection(l: List[Connection]): List[Connection] = l match {
     case Nil => Nil
-    case x :: xs => denseConnection(xs) match {
-      case y :: ys if x.trip == y.trip =>
+    case (x: TripConnection) :: xs => denseConnection(xs) match {
+      case (y: TripConnection) :: ys if x.trip == y.trip =>
         TripConnection(x.depStation, y.arrStation, x.depTime, y.arrTime, x.trip) :: ys
       case ys => x :: ys
     }
+    case x :: xs => x :: denseConnection(xs)
+  }
+
+  private def makeDescriptionFromConnection: Connection => String = {
+    case FootConnection(_, _, depTime, arrTime) => s"Footpath ${arrTime - depTime} minutes"
+    case TripConnection(_, _, _, _, trip) =>
+      val Trip(routeId, _, _, tripHeadsign) = data.trips(trip)
+      s"$tripHeadsign to ${data.routes(routeId).shortName}"
+    case _ => "Unknown Trip"
   }
 
   /**
     * Transforms trip connections to a JSON printable connection that can be delived by the API
-    * @param tripConnection a TripConnection
+    * @param connection a TripConnection
     * @return a NiceConnection derived from the input parameter
     */
-  private def makeNiceConnection(tripConnection: TripConnection): NiceConnection = {
-    val departureStation = data.stops(tripConnection.depStation)
-    val arrivalStation = data.stops(tripConnection.arrStation)
-    val departureTime = GTFSData.epoch.plusMinutes(tripConnection.depTime).toString
-    val arrivalTime = GTFSData.epoch.plusMinutes(tripConnection.arrTime).toString
-    val name = tripConnection.trip.tripHeadsign + " on " +
-      (data.routes.get(tripConnection.trip.routeId) map { _.longName } getOrElse "the woods")
-    NiceConnection(departureStation, arrivalStation, departureTime, arrivalTime, name)
-  }
+  private def makeNiceConnection(connection: Connection): NiceConnection = NiceConnection(
+    data.stops(connection.depStation),
+    data.stops(connection.arrStation),
+    GTFSData.epoch.plusMinutes(connection.depTime).toString,
+    GTFSData.epoch.plusMinutes(connection.arrTime).toString,
+    makeDescriptionFromConnection(connection)
+  )
 
   /**
     * Calculates the minutes since epoch

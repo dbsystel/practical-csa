@@ -1,31 +1,34 @@
 package algorithm
 
-import gtfs.{Footpath, Trip, TripConnection}
+import gtfs.Footpath
 
 import scala.annotation.tailrec
 
 /**
   * A CSA implementation that respects transfer times for stations, footpaths, and train specific change times
-  * @param connections sorted array of connections by departure time
+  *
+  * @param connections   sorted array of connections by departure time
   * @param transferTimes map of transfer times by stops
-  * @param footpaths map of footpaths from station
+  * @param footpaths     map of footpaths from station
   */
-class AdjustedCsa[C <: TripConnection](
-                                        val connections: Array[C],
-                                        val transferTimes: Map[Int, Int],
-                                        val footpaths: Map[Int, Iterable[Footpath]]
-                                      ) {
+class AdjustedCsa(
+                   val connections: Array[TripConnection],
+                   val transferTimes: Map[Int, Int],
+                   val footpaths: Map[Int, Iterable[Footpath]]
+                 ) {
 
   /**
     * Helper function to find the connection from an array of shortest connections
     * The function travels back to start
+    *
     * @param shortest a map of shortest connections to stops
-    * @param start the start stop of the connection
-    * @param end the stop traveled to
+    * @param start    the start stop of the connection
+    * @param end      the stop traveled to
     * @return Some list of connection to take from last to first or None if connection not found
     */
   private def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): Option[List[C]] = {
-    if (end == start) Some(List()) else shortest.get(end) map { connection =>
+    if (end == start) Some(List())
+    else shortest.get(end) map { connection =>
       connection :: makeConnection(shortest, start, connection.depStation).get
     }
   }
@@ -34,14 +37,16 @@ class AdjustedCsa[C <: TripConnection](
     * Helper function to check if two connections connect
     * This function assumes the connections meet at a.arrStation / b.depStation without checking it!
     */
-  private def connects(a: TripConnection, b: TripConnection): Boolean = {
-    a.trip == b.trip || a.arrTime <= b.depTime - transferTimes(b.depStation)
+  private def connects(a: Connection, b: TripConnection): Boolean = a match {
+    case x: TripConnection => x.trip == b.trip || x.arrTime <= b.depTime - transferTimes(b.depStation)
+    case x: FootConnection => x.arrTime <= b.depTime
   }
 
   /**
     * Simple binary lower bound search looking for lowest value that predicate holds true
+    *
     * @param predicate function that maps values to true or false
-    * @param values by predicate sorted array of values
+    * @param values    by predicate sorted array of values
     * @return lowest index that the predicate holds true for
     */
   private def findLowerBound[T](predicate: T => Boolean, values: Array[T]): Int = {
@@ -57,23 +62,19 @@ class AdjustedCsa[C <: TripConnection](
     binarySearch(0, values.length - 1)
   }
 
-  def find(query: Query): Option[List[TripConnection]] = {
-    val infinity = TripConnection(0, 0, 0, Int.MaxValue, Trip(0, 0, 0, "No Trip"))
+  def find(query: Query): Option[List[Connection]] = {
+    val infinity = TripConnection(0, 0, 0, Int.MaxValue, 0)
 
-    var shortest: Map[Int, TripConnection] = Map()
+    var shortest: Map[Int, Connection] = Map()
 
-    def insert(e: C) = {
+    def insert(e: TripConnection) = {
       val paths = footpaths(e.arrStation)
 
-      paths foreach {
-        case Footpath(fromStopId, toStopId, minutes) => {
-          println("Found footpath")
-          if (e.arrTime + minutes < shortest.getOrElse(toStopId, infinity).arrTime) {
-            println("Improved with Footpath!")
-            shortest += (toStopId -> TripConnection(
-              fromStopId, toStopId, e.arrTime, e.arrTime + minutes, Trip(0, 0, 0, s"Footpath $minutes minutes")
-            ))
-          }
+      paths foreach { case Footpath(fromStopId, toStopId, minutes) =>
+        if (e.arrTime + minutes < shortest.getOrElse(toStopId, infinity).arrTime) {
+          shortest += (toStopId -> FootConnection(
+            fromStopId, toStopId, e.arrTime, e.arrTime + minutes
+          ))
         }
       }
 
@@ -81,7 +82,7 @@ class AdjustedCsa[C <: TripConnection](
     }
 
     // we look up the earliest relevant connection with binary search
-    var i = findLowerBound((c: C) => c.depTime >= query.depTime, connections)
+    var i = findLowerBound((c: Connection) => c.depTime >= query.depTime, connections)
     // since this calculates one to one queries we can break when the connection departs later then EAT at target stop
     while (i < connections.length && shortest.getOrElse(query.arrStation, infinity).arrTime > connections(i).depTime) {
       val conn = connections(i)
@@ -96,7 +97,9 @@ class AdjustedCsa[C <: TripConnection](
       }
       i += 1
     }
-    makeConnection(shortest, query.depStation, query.arrStation) map { _.reverse }
+    makeConnection(shortest, query.depStation, query.arrStation) map {
+      _.reverse
+    }
   }
 }
 

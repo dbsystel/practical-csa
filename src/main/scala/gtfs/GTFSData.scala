@@ -5,18 +5,10 @@ import java.time.temporal.ChronoUnit
 
 import algorithm._
 
-case class TripConnection(
-                           depStation: Int,
-                           arrStation: Int,
-                           depTime: Long,
-                           arrTime: Long,
-                           trip: Trip
-                         ) extends Connection
-
 class GTFSData(
                 val stops: Map[Int, Stop],
                 val routes: Map[Int, Route],
-                val trips: Map[Int, List[Trip]],
+                val trips: Map[Int, Trip],
                 val stopTimes: Map[Int, List[StopTime]],
                 val connections: Array[TripConnection],
                 val transferTimes: Map[Int, Int],
@@ -38,7 +30,7 @@ object GTFSData {
         from.stopId,
         to.stopId,
         sinceEpoch(date, from.departureTime),
-        sinceEpoch(date, to.arrivalTime), trip
+        sinceEpoch(date, to.arrivalTime), trip.id
       ) :: makeConnectionsFromStops(trip, date)(to :: rest)
     case _ => Nil
   }
@@ -54,8 +46,10 @@ object GTFSData {
     // We would like to have the data in some different data structures for easier use (lookups)
     // Maps with id as Key
     val stops = stopData.foldLeft(Map[Int, Stop]())((p: Map[Int, Stop], n: Stop) => p + (n.id -> n))
+    val trips = tripData.foldLeft(Map[Int, Trip]())((p: Map[Int, Trip], n: Trip) => p + (n.id -> n))
     val routes = routeData.foldLeft(Map[Int, Route]())((p: Map[Int, Route], n: Route) => p + (n.id -> n))
     var transferTimes = Map[Int, Int]() withDefaultValue 0
+
     val footpaths = {
       var allFootpaths = Set[Footpath]()
       transferData foreach {
@@ -65,21 +59,17 @@ object GTFSData {
       println(s"${allFootpaths.size} foot paths!")
       allFootpaths groupBy { _.fromStopId }
     } withDefaultValue Nil
-
     println(s"${transferTimes.size} transfer times!");
 
     // In Map[List] with foreign key
-    val trips = tripData.toList groupBy { _.serviceId }
+    val tripsByRoute = trips.values.toList groupBy { _.serviceId }
     val stopTimes = stopTimeData.toList groupBy { _.tripId }
 
-    // Let's for now focus on one day
-    val todaysConnections = calendarData // filter { _.date <= 20160000 }
-
-    val connections: Array[TripConnection] = todaysConnections.toArray flatMap {
+    val connections: Array[TripConnection] = calendarData.toArray flatMap {
       (trafficDay: CalendarDate) => {
         // If a service operates on a date all trips of the service operate on this date
         // we then have to go through all of these trips and add their connections
-        val associatedTrips: List[Trip] = trips.getOrElse(trafficDay.serviceId, Nil)
+        val associatedTrips: List[Trip] = tripsByRoute.getOrElse(trafficDay.serviceId, Nil)
 
         // java.time.LocalDateTime of traffic day
         val timestamp = LocalDateTime.of(trafficDay.date / 10000, (trafficDay.date % 10000) / 100, trafficDay.date % 100, 0, 0)

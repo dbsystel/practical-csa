@@ -1,6 +1,6 @@
 package algorithm
 
-import gtfs.{Footpath, Trip, TripConnection}
+import gtfs.{Footpath, Trip}
 
 import scala.annotation.tailrec
 
@@ -32,42 +32,30 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
     binarySearch(0, values.length - 1)
   }
 
-  def find(query: Query): ParetoSet[List[TripConnection]] = {
-    def changes(l: List[TripConnection]) = l.foldLeft(Set[Int]())({ _ + _.trip.id }).size - 1
+  def find(query: Query): ParetoSet[List[Connection]] = {
+    def changes(l: List[Connection]) = l.collect({
+      case x: TripConnection => x
+    }).foldLeft(Set[Int]())({_ + _.trip }).size - 1
 
     val dom = Domination(
-      (a: List[TripConnection], b: List[TripConnection]) => a.last.depTime > b.last.depTime,
-      (a: List[TripConnection], b: List[TripConnection]) => a.head.arrTime < b.head.arrTime,
-      (a: List[TripConnection], b: List[TripConnection]) => changes(a) < changes(b)
+      (a: List[Connection], b: List[Connection]) => a.last.depTime > b.last.depTime,
+      (a: List[Connection], b: List[Connection]) => a.head.arrTime < b.head.arrTime,
+      (a: List[Connection], b: List[Connection]) => changes(a) < changes(b)
     )
 
-    def connects(a: TripConnection, b: TripConnection) = {
-      a.trip == b.trip || a.arrTime <= b.depTime - transferTimes(b.depStation)
+    def connects(a: Connection, b: TripConnection): Boolean = a match {
+      case x: TripConnection => x.trip == b.trip || x.arrTime <= b.depTime - transferTimes(b.depStation)
+      case x: FootConnection => x.arrTime <= b.depTime
     }
 
-    val emptySet = new ParetoSet[List[TripConnection]](dom.dominates)
-    var shortest: Map[Int, ParetoSet[List[TripConnection]]] = Map() withDefaultValue emptySet
+    val emptySet = new ParetoSet[List[Connection]](dom.dominates)
+    var shortest: Map[Int, ParetoSet[List[Connection]]] = Map() withDefaultValue emptySet
 
-    def insert(c: List[TripConnection]) = {
+    def insert(c: List[Connection]) = {
       shortest += c.head.arrStation -> (shortest(c.head.arrStation) + c)
     }
-
-    def insertWithFootpath(c: List[TripConnection]) = {
-      val newSet = shortest(c.head.arrStation) + c
-      if (shortest(c.head.arrStation) != newSet) {
-        for (c <- newSet) {
-          footpaths(c.head.arrStation) map { case Footpath(fId, tId, minutes) =>
-            TripConnection(
-              fId, tId, c.head.arrTime, c.head.arrTime + minutes, Trip(0, 0, 0, s"Footpath $minutes minutes")
-            ) :: c
-          } foreach insert
-        }
-
-        shortest += c.head.arrStation -> newSet
-      }
-    }
-
-    def insertIterable(l: Iterable[List[TripConnection]]) = {
+    
+    def insertIterable(l: Iterable[List[Connection]]) = {
       if (l.nonEmpty) {
         val arrStation = l.head.head.arrStation
         shortest += arrStation -> (shortest(arrStation) ++ l)
@@ -79,7 +67,7 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
     while (i < connections.length && connections(i).depTime < breakTime) {
       val conn = connections(i)
       if (conn.depStation == query.depStation && query.depTime <= conn.depTime)
-        insertWithFootpath(List(conn))
+        insert(List(conn))
       else
         insertIterable(shortest(conn.depStation) filter { l => connects(l.head, conn) } map { conn :: _ })
       i += 1
