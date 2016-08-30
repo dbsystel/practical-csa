@@ -59,21 +59,13 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
             l <- footpaths.get(x.arrStation)
             p <- l
             betterFootpath = FootConnection(p.fromStopId, p.toStopId, x.arrTime, x.arrTime + p.minutes) :: c
-          } {
-            println("Inserting Footpath!")
-            insert(betterFootpath)
-          }
+          } insert(betterFootpath)
         }
         shortest += x.arrStation -> newParetoSet
       case x :: xs => shortest += x.arrStation -> (shortest(x.arrStation) + c)
     }
 
-    def insertIterable(l: Iterable[List[Connection]]) = {
-      if (l.nonEmpty) {
-        val arrStation = l.head.head.arrStation
-        shortest += arrStation -> (shortest(arrStation) ++ l)
-      }
-    }
+    def insertIterable(l: Iterable[List[Connection]]) = l foreach insert
 
     var i = findLowerBound((c: TripConnection) => c.depTime >= query.depTime, connections)
     var breakTime = Long.MaxValue
