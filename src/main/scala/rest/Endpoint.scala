@@ -123,6 +123,8 @@ object Endpoint extends Analogweb {
 
   res map {
     _ map { _.reverse } map { denseConnection(_) map makeNiceConnection }
+  } map {
+    _.toList.sortBy(_.head.departureTime)
   } map asJson getOrElse BadRequest(asText("Could not find a connecting journey!"))
 }
 }
