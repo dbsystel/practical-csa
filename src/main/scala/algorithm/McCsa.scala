@@ -35,7 +35,7 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
   def find(query: Query): ParetoSet[List[Connection]] = {
     def changes(l: List[Connection]) = l.collect({
       case x: TripConnection => x
-    }).foldLeft(Set[Int]())({_ + _.trip }).size - 1
+    }).foldLeft(Set[Int]())(_ + _.trip).size - 1
 
     val dom = Domination(
       (a: List[Connection], b: List[Connection]) => a.last.depTime > b.last.depTime,
@@ -51,10 +51,23 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
     val emptySet = new ParetoSet[List[Connection]](dom.dominates)
     var shortest: Map[Int, ParetoSet[List[Connection]]] = Map() withDefaultValue emptySet
 
-    def insert(c: List[Connection]) = {
-      shortest += c.head.arrStation -> (shortest(c.head.arrStation) + c)
+    def insert(c: List[Connection]): Unit = c match {
+      case (x: TripConnection) :: xs =>
+        val newParetoSet = shortest(x.arrStation) + c
+        if (shortest(x.arrStation) != newParetoSet) {
+          for {
+            l <- footpaths.get(x.arrStation)
+            p <- l
+            betterFootpath = FootConnection(p.fromStopId, p.toStopId, x.arrTime, x.arrTime + p.minutes) :: c
+          } {
+            println("Inserting Footpath!")
+            insert(betterFootpath)
+          }
+        }
+        shortest += x.arrStation -> newParetoSet
+      case x :: xs => shortest += x.arrStation -> (shortest(x.arrStation) + c)
     }
-    
+
     def insertIterable(l: Iterable[List[Connection]]) = {
       if (l.nonEmpty) {
         val arrStation = l.head.head.arrStation
