@@ -7,24 +7,37 @@ class Domination[T](criteria: ((T, T) => Boolean)*) extends ((T, T) => Boolean) 
 }
 
 class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], footpaths: Map[Int, Iterable[Footpath]]) {
-  def find(depStation: Int, arrStation: Int, depTime: Long): ParetoSet[List[Connection]] = {
+  def find(startStation: Int, targetStation: Int, startTime: Long): ParetoSet[List[Connection]] = {
     def changes(l: List[Connection]) = l.collect({
       case x: TripConnection => x
     }).foldLeft(Set[Int]())(_ + _.trip).size - 1
 
-    val dom = new Domination(
-      (a: List[Connection], b: List[Connection]) => a.last.depTime > b.last.depTime,
-      (a: List[Connection], b: List[Connection]) => a.head.arrTime < b.head.arrTime,
-      (a: List[Connection], b: List[Connection]) => changes(a) < changes(b)
-    )
+    def earliestConnection(c: List[Connection]): Long = c.head match {
+      case FootConnection(_, _, _, arrTime) => arrTime
+      case TripConnection(_, arrStation, _, arrTime, _) => transferTimes(arrStation) + arrTime
+    }
 
     def connects(a: Connection, b: TripConnection): Boolean = a match {
       case x: TripConnection => x.trip == b.trip || x.arrTime <= b.depTime - transferTimes(b.depStation)
       case x: FootConnection => x.arrTime <= b.depTime
     }
 
+    val dom = new Domination(
+      (a: List[Connection], b: List[Connection]) => a.last.depTime > b.last.depTime,
+      (a: List[Connection], b: List[Connection]) => a.head.arrTime < b.head.arrTime,
+      (a: List[Connection], b: List[Connection]) => earliestConnection(a) < earliestConnection(b),
+      (a: List[Connection], b: List[Connection]) => changes(a) < changes(b)
+    )
+
+    val strictDom = new Domination(
+      (a: List[Connection], b: List[Connection]) => a.last.depTime > b.last.depTime,
+      (a: List[Connection], b: List[Connection]) => a.head.arrTime < b.head.arrTime,
+      (a: List[Connection], b: List[Connection]) => changes(a) < changes(b)
+    )
+
     val emptySet = new ParetoSet[List[Connection]](dom)
-    var shortest: Map[Int, ParetoSet[List[Connection]]] = Map() withDefaultValue emptySet
+    val strictSet = new ParetoSet[List[Connection]](strictDom)
+    var shortest: Map[Int, ParetoSet[List[Connection]]] = Map(targetStation -> strictSet) withDefaultValue emptySet
 
     def insert(c: List[Connection]): Unit = c match {
       case (x: TripConnection) :: xs =>
@@ -40,27 +53,27 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
       case x :: xs => shortest += x.arrStation -> (shortest(x.arrStation) + c)
     }
 
-    var i = findLowerBound((c: TripConnection) => c.depTime >= depTime, connections)
+    var i = findLowerBound((c: TripConnection) => c.depTime >= startTime, connections)
     var breakTime = Long.MaxValue
     while (i < connections.length && connections(i).depTime < breakTime) {
       val conn = connections(i)
-      if (conn.depStation == depStation && depTime <= conn.depTime)
+      if (conn.depStation == startStation && startTime <= conn.depTime)
         insert(List(conn))
       else {
         shortest(conn.depStation) filter { l => connects(l.head, conn) } map {
           conn :: _
         } foreach insert
 
-        footpaths(depStation) find { p =>
-          p.toStopId == conn.depStation && depTime + p.minutes < conn.depTime
+        footpaths(startStation) find { p =>
+          p.toStopId == conn.depStation && startTime + p.minutes < conn.depTime
         } foreach { p =>
           insert(List(conn, FootConnection(p.fromStopId, p.toStopId, conn.depTime - p.minutes, conn.depTime)))
         }
       }
       i += 1
-      breakTime = shortest(arrStation).map(_.head.arrTime + 300).foldLeft(Long.MaxValue)(_ min _)
+      breakTime = shortest(targetStation).map(_.head.arrTime + 300).foldLeft(Long.MaxValue)(_ min _)
     }
 
-    shortest(arrStation)
+    shortest(targetStation)
   }
 }
