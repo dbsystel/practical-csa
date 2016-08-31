@@ -22,7 +22,7 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
     binarySearch(0, values.length - 1)
   }
 
-  def find(query: Query): ParetoSet[List[Connection]] = {
+  def find(depStation: Int, arrStation: Int, depTime: Long): ParetoSet[List[Connection]] = {
     def changes(l: List[Connection]) = l.collect({
       case x: TripConnection => x
     }).foldLeft(Set[Int]())(_ + _.trip).size - 1
@@ -55,18 +55,27 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
       case x :: xs => shortest += x.arrStation -> (shortest(x.arrStation) + c)
     }
 
-    var i = findLowerBound((c: TripConnection) => c.depTime >= query.depTime, connections)
+    var i = findLowerBound((c: TripConnection) => c.depTime >= depTime, connections)
     var breakTime = Long.MaxValue
     while (i < connections.length && connections(i).depTime < breakTime) {
       val conn = connections(i)
-      if (conn.depStation == query.depStation && query.depTime <= conn.depTime)
+      if (conn.depStation == depStation && depTime <= conn.depTime)
         insert(List(conn))
-      else
-        shortest(conn.depStation) filter { l => connects(l.head, conn) } map { conn :: _ } foreach insert
+      else {
+        shortest(conn.depStation) filter { l => connects(l.head, conn) } map {
+          conn :: _
+        } foreach insert
+
+        footpaths(depStation) find { p =>
+          p.toStopId == conn.depStation && depTime + p.minutes < conn.depTime
+        } foreach { p =>
+          insert(List(conn, FootConnection(p.fromStopId, p.toStopId, conn.depTime - p.minutes, conn.depTime)))
+        }
+      }
       i += 1
-      breakTime = shortest(query.arrStation).map(_.head.arrTime + 300).foldLeft(Long.MaxValue)(_ min _)
+      breakTime = shortest(arrStation).map(_.head.arrTime + 300).foldLeft(Long.MaxValue)(_ min _)
     }
 
-    shortest(query.arrStation)
+    shortest(arrStation)
   }
 }
