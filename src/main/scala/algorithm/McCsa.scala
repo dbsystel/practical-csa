@@ -1,21 +1,11 @@
 package algorithm
 
-import gtfs.{Footpath, Trip}
+import gtfs.Footpath
 
 import scala.annotation.tailrec
 
-class Domination[T](criteria: ((T, T) => Boolean)*) {
-  private def check(x: T, y: T)(criterion: (T, T) => Boolean): Int = {
-    if (criterion(x, y)) 1 else if (criterion(y, x)) -1 else 0
-  }
-
-  def dominates(x: T, y: T): Boolean = {
-    (criteria exists { check(x, y)(_) == 1 }) && (criteria forall { check(x, y)(_) >= 0 })
-  }
-}
-
-object Domination {
-  def apply[T](criteria: ((T, T) => Boolean)*): Domination[T] = new Domination(criteria: _*)
+class Domination[T](criteria: ((T, T) => Boolean)*) extends ((T, T) => Boolean) {
+  def apply(x: T, y: T): Boolean = (criteria exists { _(x, y) }) && (criteria forall { !_(y, x) })
 }
 
 class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], footpaths: Map[Int, Iterable[Footpath]]) {
@@ -37,7 +27,7 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
       case x: TripConnection => x
     }).foldLeft(Set[Int]())(_ + _.trip).size - 1
 
-    val dom = Domination(
+    val dom = new Domination(
       (a: List[Connection], b: List[Connection]) => a.last.depTime > b.last.depTime,
       (a: List[Connection], b: List[Connection]) => a.head.arrTime < b.head.arrTime,
       (a: List[Connection], b: List[Connection]) => changes(a) < changes(b)
@@ -48,7 +38,7 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
       case x: FootConnection => x.arrTime <= b.depTime
     }
 
-    val emptySet = new ParetoSet[List[Connection]](dom.dominates)
+    val emptySet = new ParetoSet[List[Connection]](dom)
     var shortest: Map[Int, ParetoSet[List[Connection]]] = Map() withDefaultValue emptySet
 
     def insert(c: List[Connection]): Unit = c match {
@@ -65,8 +55,6 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
       case x :: xs => shortest += x.arrStation -> (shortest(x.arrStation) + c)
     }
 
-    def insertIterable(l: Iterable[List[Connection]]) = l foreach insert
-
     var i = findLowerBound((c: TripConnection) => c.depTime >= query.depTime, connections)
     var breakTime = Long.MaxValue
     while (i < connections.length && connections(i).depTime < breakTime) {
@@ -74,7 +62,7 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
       if (conn.depStation == query.depStation && query.depTime <= conn.depTime)
         insert(List(conn))
       else
-        insertIterable(shortest(conn.depStation) filter { l => connects(l.head, conn) } map { conn :: _ })
+        shortest(conn.depStation) filter { l => connects(l.head, conn) } map { conn :: _ } foreach insert
       i += 1
       breakTime = shortest(query.arrStation).map(_.head.arrTime + 300).foldLeft(Long.MaxValue)(_ min _)
     }
