@@ -1,24 +1,27 @@
 package algorithm
 
-object BackwardsCSA {
+class BackwardsCSA(connections: Array[TripConnection]) {
+  private val byDeparture = connections
+  private val byArrival = connections sortWith { _.arrTime < _.arrTime }
+
   private def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): Option[List[C]] = {
     if (end == start) Some(List()) else shortest.get(end) map { connection =>
       connection :: makeConnection(shortest, start, connection.arrStation).get
     }
   }
 
-  def find[C <: Connection](byDeparture: Array[C], byArrival: Array[C], query: Query): Option[List[C]] = {
+  def find(depStation: Int, arrStation: Int, depTime: Long): Option[List[Connection]] = {
     val infinity = BasicConnection(0, 0, 0, Int.MaxValue)
 
-    var shortest: Map[Int, C] = Map[Int, C]()
+    var shortest: Map[Int, Connection] = Map[Int, Connection]()
 
     // we look up the earliest relevant connection with binary search
-    var i = findLowerBound((c: C) => c.depTime >= query.depTime, byDeparture)
+    var i = findLowerBound((c: Connection) => c.depTime >= depTime, byDeparture)
     // since this calculates one to one queries we can break when the connection departs later then EAT at target stop
-    while (i < byDeparture.length && shortest.getOrElse(query.arrStation, infinity).arrTime > byDeparture(i).depTime) {
+    while (i < byDeparture.length && shortest.getOrElse(arrStation, infinity).arrTime > byDeparture(i).depTime) {
       val conn = byDeparture(i)
       if (
-        conn.depStation == query.depStation && query.depTime <= conn.depTime ||
+        conn.depStation == depStation && depTime <= conn.depTime ||
           shortest.getOrElse(conn.depStation, infinity).arrTime < conn.depTime
       ) {
         shortest.get(conn.arrStation) match {
@@ -32,19 +35,19 @@ object BackwardsCSA {
     }
 
     // If we could not find an EAT for the target station we can exit here
-    if (!shortest.isDefinedAt(query.arrStation)) return None
+    if (!shortest.isDefinedAt(arrStation)) return None
 
-    val eat = shortest(query.arrStation).arrTime
+    val eat = shortest(arrStation).arrTime
 
     // now we scan backwards through the array to find the latest departing connection arriving at eat
-    i = findLowerBound((c: C) => c.arrTime > eat, byArrival) - 1
+    i = findLowerBound((c: Connection) => c.arrTime > eat, byArrival) - 1
 
     shortest = Map()
 
-    while (i > 0 && byArrival(i).arrTime >= query.depTime) {
+    while (i > 0 && byArrival(i).arrTime >= depTime) {
       val conn = byArrival(i)
       if (
-        conn.arrStation == query.arrStation && eat >= conn.arrTime ||
+        conn.arrStation == arrStation && eat >= conn.arrTime ||
           shortest.getOrElse(conn.arrStation, infinity).depTime > conn.arrTime
       ) {
         shortest.get(conn.depStation) match {
@@ -57,7 +60,7 @@ object BackwardsCSA {
       i -= 1
     }
 
-    makeConnection(shortest, query.arrStation, query.depStation)
+    makeConnection(shortest, arrStation, depStation)
   }
 }
 

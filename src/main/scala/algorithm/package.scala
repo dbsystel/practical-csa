@@ -3,7 +3,8 @@ import scala.annotation.tailrec
 /**
   * Created by hendrikniemann on 31.08.2016.
   */
-package object algorithm {  /**
+package object algorithm {
+  /**
   * Simple binary lower bound search looking for lowest value that predicate holds true
   *
   * @param predicate function that maps values to true or false
