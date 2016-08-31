@@ -1,28 +1,10 @@
 package algorithm
 
-import scala.annotation.tailrec
-
 object BackwardsCSA {
   private def makeConnection[C <: Connection](shortest: Map[Int, C], start: Int, end: Int): Option[List[C]] = {
     if (end == start) Some(List()) else shortest.get(end) map { connection =>
       connection :: makeConnection(shortest, start, connection.arrStation).get
     }
-  }
-
-  private def findLowerBound[T](criterion: T => Boolean, values: Array[T]): Int = {
-    @tailrec
-    def binarySearch(lower: Int, upper: Int): Int = {
-      if (lower >= upper)
-        lower
-      else {
-        val between = (upper - lower) / 2 + lower
-        if (criterion(values(between)))
-          binarySearch(lower, between)
-        else
-          binarySearch(between + 1, upper)
-      }
-    }
-    binarySearch(0, values.length - 1)
   }
 
   def find[C <: Connection](byDeparture: Array[C], byArrival: Array[C], query: Query): Option[List[C]] = {

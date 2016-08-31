@@ -2,26 +2,11 @@ package algorithm
 
 import gtfs.Footpath
 
-import scala.annotation.tailrec
-
 class Domination[T](criteria: ((T, T) => Boolean)*) extends ((T, T) => Boolean) {
   def apply(x: T, y: T): Boolean = (criteria exists { _(x, y) }) && (criteria forall { !_(y, x) })
 }
 
 class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], footpaths: Map[Int, Iterable[Footpath]]) {
-  private def findLowerBound[T](criterion: T => Boolean, values: Array[T]): Int = {
-    @tailrec
-    def binarySearch(lower: Int, upper: Int): Int = {
-      if (lower >= upper)
-        lower
-      else {
-        val between = (upper - lower) / 2 + lower
-        if (criterion(values(between))) binarySearch(lower, between) else binarySearch(between + 1, upper)
-      }
-    }
-    binarySearch(0, values.length - 1)
-  }
-
   def find(depStation: Int, arrStation: Int, depTime: Long): ParetoSet[List[Connection]] = {
     def changes(l: List[Connection]) = l.collect({
       case x: TripConnection => x
