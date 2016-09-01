@@ -9,10 +9,11 @@ class GTFSData(
                 val stops: Map[Int, Stop],
                 val routes: Map[Int, Route],
                 val trips: Map[Int, Trip],
-                val stopTimes: Map[Int, List[StopTime]],
+                val stopTimes: Map[Int, Iterable[StopTime]],
                 val connections: Array[TripConnection],
                 val transferTimes: Map[Int, Int],
-                val footpaths: Map[Int, Iterable[Footpath]]
+                val footpaths: Map[Int, Iterable[Footpath]],
+                val tripTransfers: Map[Int, Iterable[TripTransfer]]
               ) {
   def findStopByName(name: String): Option[Stop] = stops find { _._2.name == name } map { _._2 }
 }
@@ -50,20 +51,20 @@ object GTFSData {
     val routes = routeData.foldLeft(Map[Int, Route]())((p: Map[Int, Route], n: Route) => p + (n.id -> n))
     var transferTimes = Map[Int, Int]() withDefaultValue 0
 
-    val footpaths = {
-      var allFootpaths = Set[Footpath]()
-      transferData foreach {
-        case MinimumTransferTime(stopId, minutes) => transferTimes += (stopId -> minutes)
-        case f: Footpath => allFootpaths += f
-      }
-      println(s"${allFootpaths.size} foot paths!")
-      allFootpaths groupBy { _.fromStopId }
-    } withDefaultValue Nil
-    println(s"${transferTimes.size} transfer times!");
+
+    var allFootpaths = Set[Footpath]()
+    var allTripTransfers = Set[TripTransfer]()
+    transferData foreach {
+      case MinimumTransferTime(stopId, minutes) => transferTimes += (stopId -> minutes)
+      case f: Footpath => allFootpaths += f
+      case t: TripTransfer => allTripTransfers += t
+    }
+    val footpaths = allFootpaths groupBy { _.fromStopId } withDefaultValue Nil
 
     // In Map[List] with foreign key
     val tripsByRoute = trips.values.toList groupBy { _.serviceId }
     val stopTimes = stopTimeData.toList groupBy { _.tripId }
+    val tripTransfers = allTripTransfers groupBy { _.fromTrip }
 
     val connections: Array[TripConnection] = calendarData.toArray flatMap {
       (trafficDay: CalendarDate) => {
@@ -80,8 +81,8 @@ object GTFSData {
       }
     }
 
-    new GTFSData(stops, routes, trips, stopTimes, connections.sortBy(c => c.depTime), transferTimes, footpaths)
+    new GTFSData(stops, routes, trips, stopTimes, connections.sortBy(c => c.depTime), transferTimes, footpaths, tripTransfers)
   }
 
-  def empty = new GTFSData(Map(), Map(), Map(), Map(), Array(), Map(), Map())
+  def empty = new GTFSData(Map(), Map(), Map(), Map(), Array(), Map(), Map(), Map())
 }

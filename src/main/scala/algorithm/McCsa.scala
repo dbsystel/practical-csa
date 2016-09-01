@@ -24,7 +24,6 @@ class McCsa(connections: Array[TripConnection], transferTimes: Map[Int, Int], fo
 
     val dom = new Domination(
       (a: List[Connection], b: List[Connection]) => a.last.depTime > b.last.depTime,
-      (a: List[Connection], b: List[Connection]) => a.head.arrTime < b.head.arrTime,
       (a: List[Connection], b: List[Connection]) => earliestConnection(a) < earliestConnection(b),
       (a: List[Connection], b: List[Connection]) => changes(a) < changes(b)
     )
