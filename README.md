@@ -15,6 +15,10 @@ The algorithm was introduced in 2013 by [Julian Dibbelt, Thomas Pajor, Ben Stras
 My bachelor thesis studies the relevance and applicability of the algorithm for [Deutsche Bahn](http://deutschebahn.com).
 This repository contains code that was created for the thesis.
 
+### Features of the multi criteria implementation
+
+Pareto optimal result set with criteria _depature time_, _arrival time_ and _number of changes_. Apart from that the implementation supports footpaths, minimum change times and trip specific change times which are all read in from the _transfers.txt_
+
 ## Getting started
 
 To run this project you will need:
@@ -29,6 +33,13 @@ Clone or download the files from Github.
 
 Get the [inofficial Fernverkehr GTFS Feed](https://github.com/fredlockheed/db-fv-gtfs/). For now this is hardcoded to the fields provided in this feed. If you want to use your own GTFS feed take a look into [gtfs.readers](https://github.com/dbsystel/practical-csa/blob/master/src/main/scala/gtfs/readers.scala) and make sure the parameters are matched correctly to the case class fields of the type.
 
+You can also use the debug data from `data/debug`. You will need _node.js_ to execute the script and generate the GTFS data:
+```
+cd data/debug/
+npm install
+node script.js source.js
+```
+
 Use you command line to execute the following commands in the project's folder:
 
 ```
@@ -41,7 +52,11 @@ Enter the location of the extracted GTFS feed on you file system. This will load
 Query connections with:
 
 ```
+# basic csa
 get http://localhost:8080/query/{from}/{to}
+
+# multi criteria
+get http://localhost:8080/mc/{from}/{to}
 ```
 
 With `from` and `to` being the integer stop IDs of your GTFS feed.
