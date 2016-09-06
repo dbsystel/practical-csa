@@ -61,6 +61,7 @@ object GTFSData {
     }
     val footpaths = allFootpaths groupBy { _.fromStopId } withDefaultValue Nil
 
+
     // In Map[List] with foreign key
     val tripsByRoute = trips.values.toList groupBy { _.serviceId }
     val stopTimes = stopTimeData.toList groupBy { _.tripId }

@@ -124,7 +124,8 @@ object Endpoint extends Analogweb {
 
   val res = List(param("from"), param("to")) map { s => data.stops.get(s.toInt) } match {
     case Some(start) :: Some(destination) :: Nil =>
-      Some(new McCsa(data.connections, data.transferTimes, data.footpaths).find(start.id, destination.id, time))
+      val mcCsa = new McCsa(data.connections, data.transferTimes, data.footpaths, data.tripTransfers)
+      Some(mcCsa.find(start.id, destination.id, time))
     case _ => None
   }
 
