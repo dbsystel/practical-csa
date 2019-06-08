@@ -61,6 +61,7 @@ get http://localhost:8080/mc/{from}/{to}
 
 With `from` and `to` being the integer stop IDs of your GTFS feed.
 
-## Licence
+## License
 
-Will follow soon...
+Licensed under Apache 2.0
+Copyright 2016-2016 DB Systel GmbH
