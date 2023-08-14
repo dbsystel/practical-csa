@@ -1,6 +1,6 @@
 # Practical Connection Scan Algorithm Implementation
 
-> _Under construction!_
+> 💡 **This repository is no longer actively maintained by DB Systel GmbH. It was created as part of a bachelor thesis. If you are interested in continuing the effort, please feel free to contact us.**
 
 This is a high level implementation of the Connection Scan Algorithm.
 Modifications are made to fit special requirements for timetable information systems at [Deutsche Bahn](http://deutschebahn.com).
